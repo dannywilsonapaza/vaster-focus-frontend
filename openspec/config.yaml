@@ -1,0 +1,31 @@
+﻿schema: spec-driven
+
+# CONSTITUCIÓN Y CONTEXTO DEL PROYECTO (Frontend)
+context: |
+  # Constitución del Proyecto: Vaster Focus (Frontend Web)
+  
+  ## 1. Visión y Propósito
+  Aplicación web inmersiva para estudio profundo (Solo Study) inspirada en Study Together, con estética true-black/OLED, widgets flotantes de cristal (glassmorphism), temporizador Pomodoro y mezclador de audio ambiental.
+  
+  ## 2. Stack Tecnológico
+  - Framework: Angular (v20 Standalone Components exclusivos, sin NgModule).
+  - Reactividad: Angular Signals para estado local de UI; RxJS para streams de eventos y audio.
+  - Estilos: Tailwind CSS con paleta oscura OLED (vanta-black) y efectos backdrop-blur.
+  - Iconos: Lucide Icons (`@lucide/angular`).
+  - Audio: Web Audio API nativa para mezcla multicanal sin bloqueos.
+  - Gestor de Paquetes: pnpm.
+  
+  ## 3. Reglas de Oro No Negociables (Invariantes del Sistema)
+  1. COMPONENTES STANDALONE: Prohibido el uso de NgModule. Todos los componentes, directivas y pipes deben ser `standalone: true`.
+  2. RENDIMIENTO ONPUSH: Todos los componentes deben declarar `changeDetection: ChangeDetectionStrategy.OnPush`.
+  3. PRECISIÓN DEL TEMPORIZADOR (DRIFT-FREE): El temporizador no debe depender de un setInterval vulnerable al throttling del navegador cuando la pestaña pasa a segundo plano; calcular el tiempo mediante deltas de timestamps (`targetTimestamp - Date.now()`) o Web Workers.
+  4. ESTILOS MODULARES: Usar únicamente clases utilitarias de Tailwind CSS. No instalar PrimeNG ni frameworks corporativos pesados.
+  5. LIMPIEZA REACTIVA: Destruir suscripciones y observables de forma segura utilizando `takeUntilDestroyed()`.
+
+rules:
+  proposal:
+    - Redactar propuestas claras en español describiendo los componentes de interfaz, experiencia de usuario (UX) y estados.
+  specs:
+    - "Redactar requerimientos en español usando EARS: Ubicuo (EL SISTEMA...), Evento (CUANDO...), Estado (MIENTRAS...), No deseado (SI... ENTONCES...), Opcional (DONDE...)."
+  tasks:
+    - Dividir las tareas en incrementos pequeños de UI y lógica verificables.

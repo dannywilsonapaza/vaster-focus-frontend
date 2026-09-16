@@ -1,0 +1,96 @@
+import { Component, ChangeDetectionStrategy, input, computed } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { DailyStat } from '../../../core/models';
+
+@Component({
+  selector: 'app-daily-chart',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="p-6 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-xl w-full">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h3 class="text-base font-semibold text-white tracking-wide">Tiempo de Estudio Diario</h3>
+          <p class="text-xs text-white/50 font-mono mt-0.5">Proyectado en Zona Horaria de Lima (UTC-5)</p>
+        </div>
+        <div class="flex items-center gap-4 text-xs font-mono">
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded bg-emerald-400"></span>
+            <span class="text-white/60">Trabajo</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-3 h-3 rounded bg-sky-400"></span>
+            <span class="text-white/60">Descanso</span>
+          </div>
+        </div>
+      </div>
+
+      @if (chartData().length === 0) {
+        <div class="py-16 text-center text-sm text-white/40 font-mono">
+          No hay sesiones de estudio registradas en este período.
+        </div>
+      } @else {
+        <!-- Bars Container -->
+        <div class="h-64 flex items-end gap-2 sm:gap-3 pt-6 pb-2 px-1 border-b border-white/10">
+          @for (item of chartData(); track item.studyDay) {
+            <div class="group relative flex-1 flex flex-col items-center h-full justify-end">
+              <!-- Tooltip on hover -->
+              <div class="absolute -top-12 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none bg-zinc-900 border border-white/10 px-2.5 py-1.5 rounded-xl text-center z-20 whitespace-nowrap shadow-xl">
+                <div class="text-[11px] font-mono font-bold text-white">{{ item.studyDay }}</div>
+                <div class="text-[10px] text-emerald-400 font-mono">{{ formatDuration(item.totalSeconds) }} trabajo</div>
+              </div>
+
+              <!-- Bar Stacks -->
+              <div class="w-full max-w-[36px] flex flex-col justify-end rounded-t-lg overflow-hidden bg-white/5 h-full">
+                <!-- Work portion -->
+                <div
+                  class="w-full bg-emerald-400 hover:bg-emerald-300 transition-all duration-300"
+                  [style.height.%]="getWorkPercent(item.totalSeconds)"
+                ></div>
+              </div>
+
+              <!-- X-Axis Day Label -->
+              <span class="mt-2 text-[10px] font-mono text-white/40 truncate w-full text-center">
+                {{ formatDayLabel(item.studyDay) }}
+              </span>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class DailyChartComponent {
+  readonly dailyStats = input.required<DailyStat[]>();
+
+  readonly chartData = computed(() => {
+    return [...this.dailyStats()].reverse().slice(-14);
+  });
+
+  readonly maxSeconds = computed(() => {
+    const stats = this.chartData();
+    if (stats.length === 0) return 3600;
+    const max = Math.max(...stats.map((s) => s.totalSeconds));
+    return Math.max(max, 1800);
+  });
+
+  getWorkPercent(seconds: number): number {
+    const max = this.maxSeconds();
+    if (max === 0) return 0;
+    return Math.min(100, Math.round((seconds / max) * 100));
+  }
+
+  formatDayLabel(studyDay: string): string {
+    const parts = studyDay.split('-');
+    if (parts.length < 3) return studyDay;
+    return `${parts[2]}/${parts[1]}`;
+  }
+
+  formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return `${h}h ${m}m`;
+    return `${m} min`;
+  }
+}

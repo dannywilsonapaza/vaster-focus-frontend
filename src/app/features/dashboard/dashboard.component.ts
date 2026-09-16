@@ -1,0 +1,209 @@
+import { Component, ChangeDetectionStrategy, inject, signal, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
+import { ApiService } from '../../core/services/api.service';
+import { StatsSummary, DailyStat, Session } from '../../core/models';
+import { StatCardComponent } from './components/stat-card.component';
+import { DailyChartComponent } from './components/daily-chart.component';
+import { LucideArrowLeft, LucideHistory, LucideRefreshCw } from '@lucide/angular';
+
+@Component({
+  selector: 'app-dashboard',
+  standalone: true,
+  imports: [
+    CommonModule,
+    RouterLink,
+    StatCardComponent,
+    DailyChartComponent,
+    LucideArrowLeft,
+    LucideHistory,
+    LucideRefreshCw,
+  ],
+  template: `
+    <div class="min-h-screen bg-[#050505] text-white p-4 md:p-8 flex flex-col justify-between selection:bg-emerald-500 selection:text-black">
+      <div class="max-w-7xl w-full mx-auto space-y-8">
+        <!-- Top Navigation -->
+        <header class="flex items-center justify-between pb-6 border-b border-white/10">
+          <div class="flex items-center gap-4">
+            <a
+              routerLink="/"
+              class="flex items-center justify-center w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-all"
+              aria-label="Volver a la sala de estudio"
+            >
+              <svg lucideArrowLeft [size]="18" class="w-4 h-4"></svg>
+            </a>
+            <div>
+              <h1 class="text-xl font-bold tracking-tight text-white">Panel de Productividad</h1>
+              <p class="text-xs text-emerald-400 font-mono">Métricas sincronizadas con horario de Lima (UTC-5)</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            (click)="loadData()"
+            [disabled]="isLoading()"
+            class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-mono text-white/70 hover:text-white transition-colors"
+          >
+            <svg lucideRefreshCw [size]="14" class="w-3.5 h-3.5" [class.animate-spin]="isLoading()"></svg>
+            <span>Actualizar</span>
+          </button>
+        </header>
+
+        <!-- KPI Cards Grid -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <app-stat-card
+            title="Racha Actual"
+            [value]="(summary()?.currentStreak || 0) + ' días'"
+            [subtitle]="summary()?.studiedToday ? '✓ Estudiado hoy' : '⏳ Ventana de gracia (Ayer)'"
+            icon="flame"
+            accent="amber"
+          />
+
+          <app-stat-card
+            title="Mejor Racha"
+            [value]="(summary()?.bestStreak || 0) + ' días'"
+            subtitle="Récord histórico consecutivo"
+            icon="trophy"
+            accent="purple"
+          />
+
+          <app-stat-card
+            title="Tiempo Total Enfoque"
+            [value]="formatWorkHours(summary()?.totalWorkSeconds || 0)"
+            [subtitle]="(summary()?.totalBreakSeconds || 0) > 0 ? formatWorkHours(summary()?.totalBreakSeconds || 0) + ' descansos' : '0 descansos'"
+            icon="clock"
+            accent="emerald"
+          />
+
+          <app-stat-card
+            title="Sesiones Completadas"
+            [value]="summary()?.totalSessions || 0"
+            subtitle="Bloques Pomodoro exitosos"
+            icon="check"
+            accent="blue"
+          />
+        </section>
+
+        <!-- Daily Bar Chart -->
+        <section>
+          <app-daily-chart [dailyStats]="dailyStats()" />
+        </section>
+
+        <!-- Recent Sessions Table -->
+        <section class="p-6 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-xl">
+          <div class="flex items-center gap-2 mb-4">
+            <svg lucideHistory [size]="18" class="w-4 h-4 text-emerald-400"></svg>
+            <h3 class="text-sm font-semibold tracking-wide text-white">Historial Reciente de Sesiones</h3>
+          </div>
+
+          @if (recentSessions().length === 0) {
+            <div class="py-8 text-center text-xs text-white/40 font-mono">
+              Aún no se han registrado sesiones. ¡Inicia un bloque Pomodoro en la sala!
+            </div>
+          } @else {
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-white/10 text-white/40 font-mono">
+                    <th class="py-2.5 px-3">Fecha / Hora</th>
+                    <th class="py-2.5 px-3">Tipo</th>
+                    <th class="py-2.5 px-3">Duración</th>
+                    <th class="py-2.5 px-3">Estado</th>
+                    <th class="py-2.5 px-3">Metas Asociadas</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 font-mono">
+                  @for (s of recentSessions(); track s.id) {
+                    <tr class="hover:bg-white/[0.02] transition-colors">
+                      <td class="py-3 px-3 text-white/80">
+                        {{ formatSessionDate(s.startedAt) }}
+                      </td>
+                      <td class="py-3 px-3">
+                        <span class="px-2 py-0.5 rounded-full text-[10px]" [ngClass]="s.type === 'WORK' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-sky-500/20 text-sky-400'">
+                          {{ s.type === 'WORK' ? 'Pomodoro' : 'Descanso' }}
+                        </span>
+                      </td>
+                      <td class="py-3 px-3 text-white/90">
+                        {{ Math.round(s.durationSeconds / 60) }} min
+                      </td>
+                      <td class="py-3 px-3 text-emerald-400">
+                        {{ s.status }}
+                      </td>
+                      <td class="py-3 px-3 text-white/60">
+                        @if (s.goals && s.goals.length > 0) {
+                          <span class="text-emerald-400/80">{{ s.goals.length }} meta(s)</span>
+                        } @else {
+                          <span class="text-white/30">—</span>
+                        }
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+        </section>
+      </div>
+
+      <!-- Footer -->
+      <footer class="max-w-7xl w-full mx-auto pt-8 mt-8 border-t border-white/5 text-center text-xs text-white/40 font-mono">
+        Vaster Focus · Sistema de Productividad Profunda
+      </footer>
+    </div>
+  `,
+  changeDetection: ChangeDetectionStrategy.OnPush,
+})
+export class DashboardComponent implements OnInit {
+  private readonly apiService = inject(ApiService);
+
+  readonly summary = signal<StatsSummary | null>(null);
+  readonly dailyStats = signal<DailyStat[]>([]);
+  readonly recentSessions = signal<Session[]>([]);
+  readonly isLoading = signal<boolean>(true);
+  readonly Math = Math;
+
+  ngOnInit() {
+    this.loadData();
+  }
+
+  loadData() {
+    this.isLoading.set(true);
+
+    this.apiService.getStatsSummary().subscribe({
+      next: (sum) => this.summary.set(sum),
+      error: (e) => console.error('[Dashboard] Error resumen:', e),
+    });
+
+    this.apiService.getDailyStats(undefined, undefined, 30).subscribe({
+      next: (daily) => this.dailyStats.set(daily),
+      error: (e) => console.error('[Dashboard] Error daily:', e),
+    });
+
+    this.apiService.getSessions(10).subscribe({
+      next: (sessions) => {
+        this.recentSessions.set(sessions);
+        this.isLoading.set(false);
+      },
+      error: (e) => {
+        console.error('[Dashboard] Error sessions:', e);
+        this.isLoading.set(false);
+      },
+    });
+  }
+
+  formatWorkHours(seconds: number): string {
+    const hours = (seconds / 3600).toFixed(1);
+    return `${hours} hrs`;
+  }
+
+  formatSessionDate(isoString: string): string {
+    const d = new Date(isoString);
+    return d.toLocaleString('es-PE', {
+      timeZone: 'America/Lima',
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  }
+}
