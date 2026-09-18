@@ -1,5 +1,4 @@
 import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { TimerService } from '../../../core/services/timer.service';
@@ -16,7 +15,6 @@ import {
   selector: 'app-goals-widget',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     LucideCheckSquare,
     LucideSquare,
@@ -24,92 +22,7 @@ import {
     LucideTarget,
     LucideLink2,
   ],
-  template: `
-    <div class="p-5 rounded-3xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-xl w-full max-w-sm flex flex-col max-h-[420px]">
-      <!-- Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
-        <div class="flex items-center gap-2">
-          <svg lucideTarget [size]="18" class="w-4 h-4 text-emerald-400"></svg>
-          <h3 class="text-sm font-semibold tracking-wide text-white">Metas de la Sesión</h3>
-        </div>
-        <div class="text-[11px] font-mono text-white/50">
-          {{ completedCount() }}/{{ goals().length }} completadas
-        </div>
-      </div>
-
-      <!-- Add Goal Input -->
-      <form (submit)="addGoal($event)" class="flex items-center gap-2 mb-3">
-        <input
-          type="text"
-          [(ngModel)]="newGoalTitle"
-          name="goalTitle"
-          placeholder="Añadir nueva meta..."
-          maxlength="255"
-          class="flex-1 px-3 py-1.5 text-xs rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/40 focus:outline-none focus:border-emerald-500/50 transition-colors"
-        />
-        <button
-          type="submit"
-          [disabled]="!newGoalTitle().trim() || isSubmitting()"
-          class="flex items-center justify-center w-7 h-7 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 disabled:opacity-40 disabled:pointer-events-none transition-colors"
-          aria-label="Añadir meta"
-        >
-          <svg lucidePlus [size]="16" class="w-4 h-4"></svg>
-        </button>
-      </form>
-
-      <!-- Goals List -->
-      <div class="flex-1 overflow-y-auto space-y-2 pr-1">
-        @if (isLoading()) {
-          <div class="py-8 text-center text-xs text-white/40 animate-pulse">
-            Cargando metas...
-          </div>
-        } @else if (goals().length === 0) {
-          <div class="py-8 text-center text-xs text-white/40">
-            No hay metas activas. ¡Crea una para concentrarte!
-          </div>
-        } @else {
-          @for (goal of goals(); track goal.id) {
-            <div class="group flex items-center justify-between gap-2 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-all">
-              <!-- Checkbox & Title -->
-              <div class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer" (click)="toggleGoalComplete(goal)">
-                <button
-                  type="button"
-                  class="text-white/40 hover:text-emerald-400 transition-colors shrink-0"
-                  [attr.aria-label]="goal.isCompleted ? 'Desmarcar meta' : 'Completar meta'"
-                >
-                  @if (goal.isCompleted) {
-                    <svg lucideCheckSquare [size]="16" class="w-4 h-4 text-emerald-400"></svg>
-                  } @else {
-                    <svg lucideSquare [size]="16" class="w-4 h-4"></svg>
-                  }
-                </button>
-                <span
-                  class="text-xs truncate transition-all select-none"
-                  [ngClass]="goal.isCompleted ? 'line-through text-white/40' : 'text-white/90'"
-                >
-                  {{ goal.title }}
-                </span>
-              </div>
-
-              <!-- Link to Active Session Button -->
-              @if (!goal.isCompleted) {
-                <button
-                  type="button"
-                  (click)="toggleSessionLink(goal.id)"
-                  class="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-mono transition-colors shrink-0"
-                  [ngClass]="isGoalLinked(goal.id) ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-white/30 hover:text-white/60 hover:bg-white/5'"
-                  title="Vincular a la sesión de trabajo actual"
-                >
-                  <svg lucideLink2 [size]="11" class="w-3 h-3"></svg>
-                  <span>{{ isGoalLinked(goal.id) ? 'Activa' : 'Vincular' }}</span>
-                </button>
-              }
-            </div>
-          }
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './goals-widget.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class GoalsWidgetComponent implements OnInit {
@@ -121,13 +34,13 @@ export class GoalsWidgetComponent implements OnInit {
   readonly isSubmitting = signal<boolean>(false);
   readonly newGoalTitle = signal<string>('');
 
-  readonly completedCount = computed(() => this.goals().filter((g) => g.isCompleted).length);
+  readonly completedCount = computed<number>(() => this.goals().filter((g) => g.isCompleted).length);
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.loadGoals();
   }
 
-  loadGoals() {
+  loadGoals(): void {
     this.isLoading.set(true);
     this.apiService.getGoals().subscribe({
       next: (data) => {
@@ -141,7 +54,7 @@ export class GoalsWidgetComponent implements OnInit {
     });
   }
 
-  addGoal(event: Event) {
+  addGoal(event: Event): void {
     event.preventDefault();
     const title = this.newGoalTitle().trim();
     if (!title || this.isSubmitting()) return;
@@ -161,7 +74,7 @@ export class GoalsWidgetComponent implements OnInit {
     });
   }
 
-  toggleGoalComplete(goal: Goal) {
+  toggleGoalComplete(goal: Goal): void {
     const nextState = !goal.isCompleted;
     this.apiService.updateGoal(goal.id, { isCompleted: nextState }).subscribe({
       next: (updated) => {
@@ -180,7 +93,7 @@ export class GoalsWidgetComponent implements OnInit {
     return this.timerService.activeGoalIds().includes(goalId);
   }
 
-  toggleSessionLink(goalId: string) {
+  toggleSessionLink(goalId: string): void {
     this.timerService.toggleGoal(goalId);
   }
 }

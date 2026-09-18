@@ -1,6 +1,5 @@
 import { Component, ChangeDetectionStrategy, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { AudioMixerService } from '../../../core/services/audio-mixer.service';
+import { AudioMixerService, SoundTrack } from '../../../core/services/audio-mixer.service';
 import {
   LucideVolume2,
   LucideVolumeX,
@@ -15,7 +14,6 @@ import {
   selector: 'app-audio-mixer-widget',
   standalone: true,
   imports: [
-    CommonModule,
     LucideVolume2,
     LucideVolumeX,
     LucideCloudRain,
@@ -24,97 +22,18 @@ import {
     LucideBookOpen,
     LucideSliders,
   ],
-  template: `
-    <div class="p-5 rounded-3xl bg-black/60 backdrop-blur-xl border border-white/10 shadow-xl w-full max-w-sm">
-      <!-- Header with Master controls -->
-      <div class="flex items-center justify-between pb-4 border-b border-white/10 mb-4">
-        <div class="flex items-center gap-2">
-          <svg lucideSliders [size]="18" class="w-4 h-4 text-emerald-400"></svg>
-          <h3 class="text-sm font-semibold tracking-wide text-white">Sonido Ambiental</h3>
-        </div>
-
-        <button
-          type="button"
-          (click)="mixerService.toggleMasterMute()"
-          class="flex items-center justify-center w-8 h-8 rounded-full transition-colors"
-          [ngClass]="mixerService.isMuted() ? 'bg-red-500/20 text-red-400' : 'bg-white/10 hover:bg-white/20 text-white/80'"
-          [attr.aria-label]="mixerService.isMuted() ? 'Activar sonido' : 'Silenciar todo'"
-        >
-          @if (mixerService.isMuted()) {
-            <svg lucideVolumeX [size]="16" class="w-4 h-4"></svg>
-          } @else {
-            <svg lucideVolume2 [size]="16" class="w-4 h-4"></svg>
-          }
-        </button>
-      </div>
-
-      <!-- Master Volume Slider -->
-      <div class="flex items-center gap-3 mb-5 px-1">
-        <span class="text-xs text-white/50 w-12 font-mono">Master</span>
-        <input
-          type="range"
-          min="0"
-          max="100"
-          [value]="mixerService.masterVolume()"
-          (input)="onMasterVolumeChange($event)"
-          class="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-        />
-        <span class="text-xs text-white/70 w-8 text-right font-mono">{{ mixerService.masterVolume() }}%</span>
-      </div>
-
-      <!-- Individual Channels -->
-      <div class="space-y-3.5">
-        @for (track of mixerService.tracks(); track track.id) {
-          <div class="flex items-center justify-between gap-3 p-2 rounded-2xl bg-white/[0.03] border border-white/5 hover:border-white/10 transition-colors">
-            <!-- Icon & Toggle -->
-            <button
-              type="button"
-              (click)="mixerService.toggleTrack(track.id)"
-              class="flex items-center justify-center w-9 h-9 rounded-xl transition-all"
-              [ngClass]="track.isPlaying ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm' : 'bg-white/5 text-white/40 hover:text-white/70'"
-              [attr.aria-label]="track.isPlaying ? 'Pausar ' + track.name : 'Reproducir ' + track.name"
-            >
-              @switch (track.id) {
-                @case ('rain') { <svg lucideCloudRain [size]="18" class="w-4 h-4"></svg> }
-                @case ('lofi') { <svg lucideMusic [size]="18" class="w-4 h-4"></svg> }
-                @case ('fire') { <svg lucideFlame [size]="18" class="w-4 h-4"></svg> }
-                @case ('library') { <svg lucideBookOpen [size]="18" class="w-4 h-4"></svg> }
-              }
-            </button>
-
-            <!-- Name and Slider -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center justify-between text-xs mb-1">
-                <span class="font-medium truncate text-white/80" [class.text-emerald-300]="track.isPlaying">
-                  {{ track.name }}
-                </span>
-                <span class="text-[10px] font-mono text-white/40">{{ track.volume }}%</span>
-              </div>
-              <input
-                type="range"
-                min="0"
-                max="100"
-                [value]="track.volume"
-                (input)="onTrackVolumeChange(track.id, $event)"
-                class="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-              />
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-  `,
+  templateUrl: './audio-mixer-widget.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AudioMixerWidgetComponent {
   readonly mixerService = inject(AudioMixerService);
 
-  onMasterVolumeChange(event: Event) {
+  onMasterVolumeChange(event: Event): void {
     const input = event.target as HTMLInputElement;
     this.mixerService.setMasterVolume(Number(input.value));
   }
 
-  onTrackVolumeChange(id: any, event: Event) {
+  onTrackVolumeChange(id: SoundTrack['id'], event: Event): void {
     const input = event.target as HTMLInputElement;
     this.mixerService.setTrackVolume(id, Number(input.value));
   }

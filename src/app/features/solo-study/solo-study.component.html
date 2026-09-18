@@ -1,0 +1,79 @@
+<app-background-layer #bgLayer />
+
+<div class="relative min-h-screen flex flex-col justify-between p-4 md:p-6 text-white selection:bg-emerald-500 selection:text-black">
+  <!-- Top Navigation Bar -->
+  <header class="flex items-center justify-between w-full max-w-7xl mx-auto py-2">
+    <!-- Logo -->
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+        <svg lucideClock [size]="18" class="w-4 h-4 text-black"></svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-bold tracking-wider uppercase text-white drop-shadow-sm">Vaster Focus</h1>
+        <p class="text-[10px] text-emerald-400 font-mono">Solo Study Room</p>
+      </div>
+    </div>
+
+    <!-- Center Lima Timezone Badge -->
+    <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/70">
+      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+      <span>America/Lima (UTC-5)</span>
+    </div>
+
+    <!-- Actions: Dashboard Link & Background Switcher -->
+    <div class="flex items-center gap-3">
+      <!-- Background selector pill -->
+      <div class="hidden md:flex items-center gap-1 p-1 rounded-full bg-black/40 border border-white/10 text-xs">
+        @for (p of bgLayer.presets(); track p.id) {
+          <button
+            type="button"
+            (click)="bgLayer.setPreset(p.id)"
+            class="px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors"
+            [class]="bgLayer.activePreset().id === p.id ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/80'"
+          >
+            {{ p.name }}
+          </button>
+        }
+      </div>
+
+      <!-- Go to Dashboard -->
+      <a
+        routerLink="/dashboard"
+        class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-medium text-white transition-all shadow-sm"
+      >
+        <svg lucideBarChart3 [size]="14" class="w-3.5 h-3.5 text-emerald-400"></svg>
+        <span>Dashboard</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Central Room -->
+  <main class="flex-1 flex flex-col items-center justify-center my-6 w-full max-w-7xl mx-auto">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center w-full">
+      <!-- Left Column: Goals Checklist -->
+      <div class="flex justify-center lg:justify-end order-2 lg:order-1">
+        <app-goals-widget />
+      </div>
+
+      <!-- Center Column: Core Timer Widget -->
+      <div class="flex justify-center order-1 lg:order-2">
+        <app-timer-widget />
+      </div>
+
+      <!-- Right Column: Audio Mixer -->
+      <div class="flex justify-center lg:justify-start order-3">
+        <app-audio-mixer-widget />
+      </div>
+    </div>
+  </main>
+
+  <!-- Footer status / shortcuts -->
+  <footer class="w-full max-w-7xl mx-auto flex items-center justify-between text-[11px] text-white/40 pt-4 border-t border-white/5">
+    <div class="flex items-center gap-2">
+      <span>Inmune al estrangulamiento de pestañas (Drift-Free)</span>
+    </div>
+    <div class="font-mono">
+      Vaster Focus MVP · 2026
+    </div>
+  </footer>
+</div>
