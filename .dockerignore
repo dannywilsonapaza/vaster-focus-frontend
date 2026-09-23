@@ -1,0 +1,14 @@
+node_modules
+dist
+.angular
+.git
+.gitignore
+.vscode
+*.log
+openspec
+README.md
+coverage
+.env*
+npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
