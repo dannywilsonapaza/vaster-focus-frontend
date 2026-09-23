@@ -2,13 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Goal, Session, CreateSessionDto, DailyStat, StatsSummary } from '../models';
+import { environment } from '../../../environments/environment';
 
 @Injectable({
   providedIn: 'root',
 })
 export class ApiService {
   private readonly http = inject(HttpClient);
-  private readonly baseUrl = 'http://localhost:3000/api';
+  private readonly baseUrl = environment.apiUrl;
 
   // Goals
   getGoals(): Observable<Goal[]> {
@@ -21,6 +22,10 @@ export class ApiService {
 
   updateGoal(id: string, data: { title?: string; isCompleted?: boolean }): Observable<Goal> {
     return this.http.patch<Goal>(`${this.baseUrl}/goals/${id}`, data);
+  }
+
+  deleteGoal(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/goals/${id}`);
   }
 
   // Sessions
