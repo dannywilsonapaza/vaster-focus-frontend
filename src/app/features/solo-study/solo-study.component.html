@@ -1,79 +1,204 @@
 <app-background-layer #bgLayer />
 
-<div class="relative min-h-screen flex flex-col justify-between p-4 md:p-6 text-white selection:bg-emerald-500 selection:text-black">
+<div class="relative min-h-screen flex flex-col justify-between p-4 md:p-6 text-white selection:bg-emerald-500 selection:text-black overflow-hidden font-sans">
   <!-- Top Navigation Bar -->
-  <header class="flex items-center justify-between w-full max-w-7xl mx-auto py-2">
-    <!-- Logo -->
-    <div class="flex items-center gap-3">
-      <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-        <svg lucideClock [size]="18" class="w-4 h-4 text-black"></svg>
+  <header class="flex items-center justify-between w-full max-w-7xl mx-auto z-30">
+    <!-- Left Top Bar: Widget Toggle Status Pills with Tooltips -->
+    <div class="flex items-center gap-2">
+      <!-- Personal Timer Pill -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleTimer()"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border text-xs font-medium transition-all shadow-lg select-none cursor-pointer"
+          [class]="showTimer() ? 'border-white/25 text-white shadow-black/40' : 'border-white/5 text-white/50 hover:text-white/80'"
+          aria-label="Alternar visibilidad del temporizador personal"
+        >
+          <svg lucideClock [size]="14" class="w-3.5 h-3.5" [class]="showTimer() ? 'text-emerald-400' : 'text-white/40'"></svg>
+          <span>Personal timer</span>
+          <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-white/10 text-white font-semibold">
+            {{ timerService.formattedTime() }}
+          </span>
+        </button>
+
+        <!-- Tooltip -->
+        <div class="absolute top-full mt-2 left-0 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none animate-in fade-in duration-150">
+          {{ showTimer() ? 'Ocultar temporizador' : 'Mostrar temporizador' }}
+        </div>
       </div>
-      <div>
-        <h1 class="text-sm font-bold tracking-wider uppercase text-white drop-shadow-sm">Vaster Focus</h1>
-        <p class="text-[10px] text-emerald-400 font-mono">Solo Study Room</p>
+
+      <!-- Session Goals Pill -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleGoals()"
+          class="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-black/60 hover:bg-black/80 backdrop-blur-md border text-xs font-medium transition-all shadow-lg select-none cursor-pointer"
+          [class]="showGoals() ? 'border-white/25 text-white shadow-black/40' : 'border-white/5 text-white/50 hover:text-white/80'"
+          aria-label="Alternar visibilidad de metas de la sesión"
+        >
+          <svg lucideTarget [size]="14" class="w-3.5 h-3.5" [class]="showGoals() ? 'text-emerald-400' : 'text-white/40'"></svg>
+          <span>Session goals</span>
+          <span class="font-mono text-[11px] px-1.5 py-0.5 rounded-md bg-white/10 text-white font-semibold">
+            {{ goalsProgressText() }}
+          </span>
+        </button>
+
+        <!-- Tooltip -->
+        <div class="absolute top-full mt-2 left-0 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none animate-in fade-in duration-150">
+          {{ showGoals() ? 'Ocultar metas de la sesión' : 'Mostrar metas de la sesión' }}
+        </div>
       </div>
     </div>
 
-    <!-- Center Lima Timezone Badge -->
-    <div class="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-mono text-white/70">
-      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-      <span>America/Lima (UTC-5)</span>
-    </div>
-
-    <!-- Actions: Dashboard Link & Background Switcher -->
-    <div class="flex items-center gap-3">
-      <!-- Background selector pill -->
-      <div class="hidden md:flex items-center gap-1 p-1 rounded-full bg-black/40 border border-white/10 text-xs">
-        @for (p of bgLayer.presets(); track p.id) {
-          <button
-            type="button"
-            (click)="bgLayer.setPreset(p.id)"
-            class="px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors"
-            [class]="bgLayer.activePreset().id === p.id ? 'bg-white/20 text-white' : 'text-white/40 hover:text-white/80'"
-          >
-            {{ p.name }}
-          </button>
-        }
+    <!-- Right Top Bar: Floating Control Dock with Tooltips -->
+    <div class="relative flex items-center gap-1.5 p-1 rounded-2xl bg-black/60 backdrop-blur-md border border-white/10 shadow-lg text-white/70">
+      <!-- Background Preset Switcher Button -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleBgMenu()"
+          class="p-2 rounded-xl transition-colors cursor-pointer"
+          [class]="showBgMenu() ? 'bg-white/20 text-white' : 'hover:bg-white/10 hover:text-white text-white/70'"
+          aria-label="Cambiar fondo ambiental"
+        >
+          <svg lucideImage [size]="15" class="w-4 h-4"></svg>
+        </button>
+        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+          Ambientes y fondos
+        </div>
       </div>
 
-      <!-- Go to Dashboard -->
-      <a
-        routerLink="/dashboard"
-        class="flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/10 text-xs font-medium text-white transition-all shadow-sm"
-      >
-        <svg lucideBarChart3 [size]="14" class="w-3.5 h-3.5 text-emerald-400"></svg>
-        <span>Dashboard</span>
-      </a>
+      <!-- Audio Mixer Toggle Button -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleAudioMixer()"
+          class="p-2 rounded-xl transition-colors cursor-pointer"
+          [class]="showAudioMixer() ? 'bg-white/20 text-emerald-400' : 'hover:bg-white/10 hover:text-white text-white/70'"
+          aria-label="Sonido ambiental y música"
+        >
+          <svg lucideMusic [size]="15" class="w-4 h-4"></svg>
+        </button>
+        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+          Mezclador de audio ambiental
+        </div>
+      </div>
+
+      <!-- Quotes Toggle Button -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleQuote()"
+          class="p-2 rounded-xl transition-colors cursor-pointer"
+          [class]="showQuote() ? 'bg-white/20 text-white' : 'hover:bg-white/10 hover:text-white text-white/70'"
+          aria-label="Mostrar u ocultar frase motivacional"
+        >
+          <svg lucideQuote [size]="15" class="w-4 h-4"></svg>
+        </button>
+        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+          {{ showQuote() ? 'Ocultar frase' : 'Mostrar frase' }}
+        </div>
+      </div>
+
+      <!-- Go to Dashboard Button -->
+      <div class="relative group">
+        <a
+          routerLink="/dashboard"
+          class="p-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors flex items-center justify-center cursor-pointer"
+          aria-label="Ver panel de estadísticas"
+        >
+          <svg lucideBarChart3 [size]="15" class="w-4 h-4"></svg>
+        </a>
+        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+          Panel de productividad
+        </div>
+      </div>
+
+      <!-- Fullscreen Toggle Button -->
+      <div class="relative group">
+        <button
+          type="button"
+          (click)="toggleFullscreen()"
+          class="p-2 rounded-xl hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+          aria-label="Modo pantalla completa"
+        >
+          @if (isFullscreen()) {
+            <svg lucideMinimize [size]="15" class="w-4 h-4"></svg>
+          } @else {
+            <svg lucideMaximize [size]="15" class="w-4 h-4"></svg>
+          }
+        </button>
+        <div class="absolute top-full mt-2 left-1/2 -translate-x-1/2 hidden group-hover:flex items-center px-2.5 py-1 text-[10px] font-medium text-white/90 bg-black/90 backdrop-blur-md border border-white/10 rounded-lg shadow-xl whitespace-nowrap z-50 pointer-events-none">
+          {{ isFullscreen() ? 'Salir de pantalla completa' : 'Pantalla completa' }}
+        </div>
+      </div>
+
+      <!-- Background Switcher Dropdown Popover -->
+      @if (showBgMenu()) {
+        <div class="absolute top-12 right-0 w-48 p-2 rounded-2xl bg-black/85 backdrop-blur-xl border border-white/10 shadow-2xl flex flex-col gap-1 z-50 animate-in fade-in zoom-in-95 duration-150">
+          <div class="px-2 py-1 text-[10px] uppercase font-mono tracking-wider text-white/40 border-b border-white/5 mb-1">
+            Ambientes
+          </div>
+          @for (p of bgLayer.presets(); track p.id) {
+            <button
+              type="button"
+              (click)="bgLayer.setPreset(p.id); showBgMenu.set(false)"
+              class="flex items-center justify-between px-2.5 py-1.5 rounded-xl text-xs transition-colors text-left cursor-pointer"
+              [class]="bgLayer.activePreset().id === p.id ? 'bg-white/15 text-white font-medium' : 'text-white/60 hover:text-white hover:bg-white/5'"
+            >
+              <span>{{ p.name }}</span>
+              <span class="w-2 h-2 rounded-full" [style.background-color]="p.accentColor"></span>
+            </button>
+          }
+        </div>
+      }
     </div>
   </header>
 
-  <!-- Main Central Room -->
-  <main class="flex-1 flex flex-col items-center justify-center my-6 w-full max-w-7xl mx-auto">
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-center w-full">
-      <!-- Left Column: Goals Checklist -->
-      <div class="flex justify-center lg:justify-end order-2 lg:order-1">
-        <app-goals-widget />
-      </div>
+  <!-- Main Canvas Room -->
+  <main class="flex-1 relative w-full max-w-7xl mx-auto my-4 flex items-start justify-between pointer-events-none z-20">
+    <!-- Left Stacked Column: Personal Timer & Session Goals -->
+    <div class="pointer-events-auto flex flex-col gap-3 w-full max-w-[340px] transition-all duration-300">
+      @if (showTimer()) {
+        <div class="transition-all duration-200">
+          <app-timer-widget (close)="showTimer.set(false)" />
+        </div>
+      }
 
-      <!-- Center Column: Core Timer Widget -->
-      <div class="flex justify-center order-1 lg:order-2">
-        <app-timer-widget />
-      </div>
-
-      <!-- Right Column: Audio Mixer -->
-      <div class="flex justify-center lg:justify-start order-3">
-        <app-audio-mixer-widget />
-      </div>
+      @if (showGoals()) {
+        <div class="transition-all duration-200">
+          <app-goals-widget (close)="showGoals.set(false)" />
+        </div>
+      }
     </div>
+
+    <!-- Floating Audio Mixer Popover -->
+    @if (showAudioMixer()) {
+      <div class="pointer-events-auto absolute top-0 right-0 z-40 animate-in fade-in slide-in-from-top-2 duration-200">
+        <app-audio-mixer-widget (close)="showAudioMixer.set(false)" />
+      </div>
+    }
   </main>
 
-  <!-- Footer status / shortcuts -->
-  <footer class="w-full max-w-7xl mx-auto flex items-center justify-between text-[11px] text-white/40 pt-4 border-t border-white/5">
-    <div class="flex items-center gap-2">
-      <span>Inmune al estrangulamiento de pestañas (Drift-Free)</span>
-    </div>
-    <div class="font-mono">
-      Vaster Focus MVP · 2026
-    </div>
+  <!-- Bottom Right: Inspirational Quote in Spanish Always -->
+  <footer class="w-full max-w-7xl mx-auto flex items-end justify-end pointer-events-none z-20 pt-2">
+    @if (showQuote()) {
+      <div
+        (click)="nextQuote()"
+        class="pointer-events-auto max-w-md text-right select-none transition-all duration-300 cursor-pointer group p-3 rounded-2xl hover:bg-black/40 backdrop-blur-sm border border-transparent hover:border-white/10"
+        title="Clic para cambiar de frase inspiradora"
+      >
+        <div class="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity text-[10px] text-white/50 mb-1 font-mono">
+          <svg lucideRefreshCw [size]="10" class="w-2.5 h-2.5"></svg>
+          <span>Clic para otra frase</span>
+        </div>
+        <blockquote class="text-sm md:text-base font-semibold text-white/95 leading-snug drop-shadow-md tracking-wide">
+          “{{ currentQuote().text }}”
+        </blockquote>
+        <p class="text-xs text-white/60 font-medium mt-1 tracking-wider">
+          — {{ currentQuote().author }}
+        </p>
+      </div>
+    }
   </footer>
 </div>

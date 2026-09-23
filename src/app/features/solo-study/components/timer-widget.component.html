@@ -1,103 +1,213 @@
-<div
-  class="relative flex flex-col items-center justify-center p-8 rounded-3xl bg-black/50 backdrop-blur-xl border border-white/10 shadow-2xl transition-all duration-300 max-w-md w-full mx-auto"
->
-  <!-- Mode Selector Pills -->
-  <div class="flex items-center gap-1.5 p-1 rounded-full bg-white/5 border border-white/10 mb-8">
-    <button
-      type="button"
-      (click)="setMode('WORK')"
-      [class]="modeButtonClass('WORK')"
-      class="px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-    >
-      Pomodoro (25m)
-    </button>
-    <button
-      type="button"
-      (click)="setMode('SHORT_BREAK')"
-      [class]="modeButtonClass('SHORT_BREAK')"
-      class="px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-    >
-      Descanso (5m)
-    </button>
-    <button
-      type="button"
-      (click)="setMode('LONG_BREAK')"
-      [class]="modeButtonClass('LONG_BREAK')"
-      class="px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
-    >
-      Largo (15m)
-    </button>
-  </div>
+<div class="bg-black/75 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl text-white w-full max-w-[340px] select-none">
+  <!-- Widget Header -->
+  <div class="flex items-center justify-between pb-3 mb-3 border-b border-white/5 text-xs">
+    <div class="flex items-center gap-2 font-medium text-white/90">
+      <svg lucideClock [size]="15" class="w-3.5 h-3.5 text-white/70"></svg>
+      <span>Personal timer</span>
+    </div>
 
-  <!-- Circular Progress & Display -->
-  <div class="relative w-64 h-64 flex items-center justify-center mb-8">
-    <!-- SVG Progress Ring -->
-    <svg class="w-full h-full -rotate-90 transform" viewBox="0 0 100 100">
-      <circle
-        cx="50"
-        cy="50"
-        r="44"
-        class="text-white/5 stroke-current"
-        stroke-width="4"
-        fill="transparent"
-      />
-      <circle
-        cx="50"
-        cy="50"
-        r="44"
-        [class]="progressColorClass()"
-        stroke-width="4"
-        stroke-linecap="round"
-        fill="transparent"
-        [style.strokeDasharray]="276.46"
-        [style.strokeDashoffset]="strokeDashoffset()"
-        class="transition-all duration-300"
-      />
-    </svg>
+    <div class="flex items-center gap-2 text-white/40">
+      <!-- Sound Chime Toggle with Tooltip -->
+      <button
+        type="button"
+        (click)="timerService.toggleSoundChime()"
+        class="p-1 rounded-md hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+        [title]="timerService.soundChimeEnabled() ? 'Silenciar campanada al terminar ciclo' : 'Activar campanada al terminar ciclo'"
+        aria-label="Alternar campanada sonora"
+      >
+        @if (timerService.soundChimeEnabled()) {
+          <svg lucideVolume2 [size]="14" class="w-3.5 h-3.5 text-emerald-400"></svg>
+        } @else {
+          <svg lucideVolumeX [size]="14" class="w-3.5 h-3.5"></svg>
+        }
+      </button>
 
-    <!-- Center Time Text -->
-    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
-      <span class="text-5xl font-mono font-bold tracking-wider select-none text-white drop-shadow-md">
-        {{ timerService.formattedTime() }}
-      </span>
-      <div class="flex items-center gap-1.5 mt-2 text-xs font-medium" [class]="statusColorClass()">
-        <span class="w-2 h-2 rounded-full animate-ping" [class.hidden]="timerService.status() !== 'RUNNING'"></span>
-        <span>{{ statusText() }}</span>
-      </div>
+      <!-- Info Tooltip Button -->
+      <button
+        type="button"
+        class="p-1 rounded-md hover:text-white hover:bg-white/10 transition-colors cursor-help"
+        title="Temporizador Pomodoro personal: ajusta tus tiempos de estudio y descanso"
+        aria-label="Información del temporizador"
+      >
+        <svg lucideInfo [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+
+      <!-- Close Widget Button -->
+      <button
+        type="button"
+        (click)="close.emit()"
+        class="p-1 rounded-md hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+        title="Ocultar temporizador"
+        aria-label="Ocultar temporizador"
+      >
+        <svg lucideX [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
     </div>
   </div>
 
-  <!-- Controls Actions -->
-  <div class="flex items-center gap-4">
+  <!-- Focus Time Stepper -->
+  <div class="mb-3">
+    <div class="flex items-center justify-between text-[11px] text-white/60 mb-1">
+      <span title="Tiempo asignado a la sesión de trabajo concentrado">Focus time (min)</span>
+      @if (timerService.mode() === 'WORK' && timerService.status() === 'RUNNING') {
+        <span class="text-[10px] text-emerald-400 font-mono animate-pulse">● En curso</span>
+      }
+    </div>
+    <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-2 py-1.5">
+      <button
+        type="button"
+        (click)="timerService.adjustFocusMinutes(-5)"
+        [disabled]="timerService.status() === 'RUNNING'"
+        class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none text-white/70 hover:text-white transition-colors cursor-pointer"
+        title="Reducir 5 minutos de enfoque"
+        aria-label="Reducir 5 minutos de enfoque"
+      >
+        <svg lucideMinus [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+
+      <span
+        class="font-mono text-xl font-bold tracking-wider text-white"
+        title="Duración del bloque de trabajo"
+      >
+        {{ displayFocusTime() }}
+      </span>
+
+      <button
+        type="button"
+        (click)="timerService.adjustFocusMinutes(5)"
+        [disabled]="timerService.status() === 'RUNNING'"
+        class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none text-white/70 hover:text-white transition-colors cursor-pointer"
+        title="Aumentar 5 minutos de enfoque"
+        aria-label="Aumentar 5 minutos de enfoque"
+      >
+        <svg lucidePlus [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Break Time Stepper -->
+  <div class="mb-3">
+    <div class="flex items-center justify-between text-[11px] text-white/60 mb-1">
+      <span title="Tiempo asignado al intervalo de descanso">Break time (min)</span>
+      @if (timerService.mode() !== 'WORK' && timerService.status() === 'RUNNING') {
+        <span class="text-[10px] text-sky-400 font-mono animate-pulse">● En descanso</span>
+      }
+    </div>
+    <div class="flex items-center justify-between bg-black/40 border border-white/10 rounded-xl px-2 py-1.5">
+      <button
+        type="button"
+        (click)="timerService.adjustBreakMinutes(-1)"
+        [disabled]="timerService.status() === 'RUNNING'"
+        class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none text-white/70 hover:text-white transition-colors cursor-pointer"
+        title="Reducir 1 minuto de descanso"
+        aria-label="Reducir 1 minuto de descanso"
+      >
+        <svg lucideMinus [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+
+      <span
+        class="font-mono text-xl font-bold tracking-wider text-white"
+        title="Duración del bloque de descanso"
+      >
+        {{ displayBreakTime() }}
+      </span>
+
+      <button
+        type="button"
+        (click)="timerService.adjustBreakMinutes(1)"
+        [disabled]="timerService.status() === 'RUNNING'"
+        class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none text-white/70 hover:text-white transition-colors cursor-pointer"
+        title="Aumentar 1 minuto de descanso"
+        aria-label="Aumentar 1 minuto de descanso"
+      >
+        <svg lucidePlus [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loop Automatically Toggle with Tooltips -->
+  <div class="flex items-center justify-between py-1.5 mb-3 text-xs">
+    <div
+      class="flex items-center gap-2 cursor-pointer"
+      (click)="timerService.toggleAutoLoop()"
+      title="Reinicia automáticamente el siguiente ciclo (trabajo/descanso) al terminar"
+    >
+      <button
+        type="button"
+        role="switch"
+        [attr.aria-checked]="timerService.autoLoop()"
+        class="relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border border-white/20 transition-colors duration-200 ease-in-out focus:outline-none"
+        [class]="timerService.autoLoop() ? 'bg-emerald-500' : 'bg-white/20'"
+        aria-label="Activar bucle automático continuo"
+      >
+        <span
+          class="pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out mt-0.5 ml-0.5"
+          [class]="timerService.autoLoop() ? 'translate-x-3.5' : 'translate-x-0'"
+        ></span>
+      </button>
+      <span class="text-white/80 text-[11px] select-none">Loop automatically</span>
+      <svg
+        lucideInfo
+        [size]="12"
+        class="w-3 h-3 text-white/40 hover:text-white/80 transition-colors"
+        title="Al activarse, inicia el descanso automáticamente al terminar el trabajo, y viceversa"
+      ></svg>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="flex items-center gap-2">
     <button
       type="button"
       (click)="togglePlayPause()"
-      [class]="playButtonClass()"
-      class="flex items-center justify-center w-14 h-14 rounded-full font-semibold shadow-lg transition-all duration-200 transform hover:scale-105 active:scale-95"
-      [attr.aria-label]="timerService.status() === 'RUNNING' ? 'Pausar' : 'Iniciar'"
+      class="flex-1 py-2 px-4 rounded-xl border font-medium text-xs tracking-wide transition-all duration-200 shadow-md flex items-center justify-center gap-2 cursor-pointer"
+      [class]="
+        timerService.status() === 'RUNNING'
+          ? 'bg-amber-500/20 border-amber-500/40 text-amber-300 hover:bg-amber-500/30'
+          : 'bg-white/10 hover:bg-white/20 border-white/20 text-white hover:border-white/40'
+      "
+      [title]="
+        timerService.status() === 'RUNNING'
+          ? 'Pausar el temporizador'
+          : timerService.status() === 'PAUSED'
+            ? 'Reanudar el temporizador'
+            : 'Iniciar el temporizador'
+      "
     >
       @if (timerService.status() === 'RUNNING') {
-        <svg lucidePause [size]="24" class="w-6 h-6 text-black fill-current"></svg>
+        <svg lucidePause [size]="14" class="w-3.5 h-3.5 fill-current"></svg>
+        <span>Pause timer</span>
+      } @else if (timerService.status() === 'PAUSED') {
+        <svg lucidePlay [size]="14" class="w-3.5 h-3.5 fill-current"></svg>
+        <span>Resume timer</span>
       } @else {
-        <svg lucidePlay [size]="24" class="w-6 h-6 text-black fill-current ml-0.5"></svg>
+        <span>Start timer</span>
       }
     </button>
 
-    <button
-      type="button"
-      (click)="timerService.reset()"
-      class="flex items-center justify-center w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all duration-200 border border-white/10"
-      aria-label="Reiniciar"
-    >
-      <svg lucideRotateCcw [size]="18" class="w-4 h-4"></svg>
-    </button>
+    @if (timerService.status() !== 'IDLE') {
+      <button
+        type="button"
+        (click)="timerService.reset()"
+        class="p-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
+        title="Restablecer el temporizador a los minutos originales"
+        aria-label="Restablecer temporizador"
+      >
+        <svg lucideRotateCcw [size]="14" class="w-3.5 h-3.5"></svg>
+      </button>
+    }
   </div>
 
-  <!-- Active Linked Goals pill -->
+  <!-- Active Linked Goals -->
   @if (timerService.activeGoalIds().length > 0) {
-    <div class="mt-6 flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 px-3 py-1 rounded-full">
-      <svg lucideCheckCircle2 [size]="14" class="w-3.5 h-3.5"></svg>
-      <span>{{ timerService.activeGoalIds().length }} meta(s) vinculada(s)</span>
+    <div
+      class="mt-3 pt-2 border-t border-white/5 flex items-center justify-between text-[10px] text-emerald-400"
+      title="Metas de estudio vinculadas y registradas para esta sesión"
+    >
+      <div class="flex items-center gap-1.5">
+        <svg lucideCheckCircle2 [size]="12" class="w-3 h-3"></svg>
+        <span>{{ timerService.activeGoalIds().length }} meta(s) enlazada(s)</span>
+      </div>
     </div>
   }
 </div>

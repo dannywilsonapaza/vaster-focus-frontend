@@ -1,13 +1,15 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { TimerService } from '../../../core/services/timer.service';
 import { Goal } from '../../../core/models';
 import {
-  LucideCheckSquare,
-  LucideSquare,
-  LucidePlus,
   LucideTarget,
+  LucideInfo,
+  LucideX,
+  LucidePlus,
+  LucideCircle,
+  LucideCheckCircle2,
   LucideLink2,
 } from '@lucide/angular';
 
@@ -16,10 +18,12 @@ import {
   standalone: true,
   imports: [
     FormsModule,
-    LucideCheckSquare,
-    LucideSquare,
-    LucidePlus,
     LucideTarget,
+    LucideInfo,
+    LucideX,
+    LucidePlus,
+    LucideCircle,
+    LucideCheckCircle2,
     LucideLink2,
   ],
   templateUrl: './goals-widget.component.html',
@@ -28,6 +32,7 @@ import {
 export class GoalsWidgetComponent implements OnInit {
   private readonly apiService = inject(ApiService);
   readonly timerService = inject(TimerService);
+  readonly close = output<void>();
 
   readonly goals = signal<Goal[]>([]);
   readonly isLoading = signal<boolean>(true);
@@ -35,6 +40,7 @@ export class GoalsWidgetComponent implements OnInit {
   readonly newGoalTitle = signal<string>('');
 
   readonly completedCount = computed<number>(() => this.goals().filter((g) => g.isCompleted).length);
+  readonly openCount = computed<number>(() => this.goals().filter((g) => !g.isCompleted).length);
 
   ngOnInit(): void {
     this.loadGoals();
@@ -54,8 +60,8 @@ export class GoalsWidgetComponent implements OnInit {
     });
   }
 
-  addGoal(event: Event): void {
-    event.preventDefault();
+  addGoal(event?: Event): void {
+    if (event) event.preventDefault();
     const title = this.newGoalTitle().trim();
     if (!title || this.isSubmitting()) return;
 
@@ -89,11 +95,31 @@ export class GoalsWidgetComponent implements OnInit {
     });
   }
 
+  deleteGoal(goalId: string, event: Event): void {
+    event.stopPropagation();
+    this.apiService.deleteGoal(goalId).subscribe({
+      next: () => {
+        this.goals.update((list) => list.filter((g) => g.id !== goalId));
+        if (this.isGoalLinked(goalId)) {
+          this.timerService.toggleGoal(goalId);
+        }
+      },
+      error: (err) => {
+        console.warn('[GoalsWidget] No se pudo borrar en el servidor, eliminando localmente:', err);
+        this.goals.update((list) => list.filter((g) => g.id !== goalId));
+        if (this.isGoalLinked(goalId)) {
+          this.timerService.toggleGoal(goalId);
+        }
+      },
+    });
+  }
+
   isGoalLinked(goalId: string): boolean {
     return this.timerService.activeGoalIds().includes(goalId);
   }
 
-  toggleSessionLink(goalId: string): void {
+  toggleSessionLink(goalId: string, event: Event): void {
+    event.stopPropagation();
     this.timerService.toggleGoal(goalId);
   }
 }

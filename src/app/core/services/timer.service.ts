@@ -14,6 +14,10 @@ interface StoredTimerState {
   targetEndTime: number | null;
   startedAt: string | null;
   activeGoalIds: string[];
+  focusMinutes?: number;
+  breakMinutes?: number;
+  autoLoop?: boolean;
+  soundChimeEnabled?: boolean;
 }
 
 @Injectable({
@@ -24,8 +28,12 @@ export class TimerService {
 
   readonly mode = signal<SessionType>('WORK');
   readonly status = signal<TimerStatus>('IDLE');
-  readonly targetSeconds = signal<number>(1500); // 25 min default
-  readonly remainingSeconds = signal<number>(1500);
+  readonly focusMinutes = signal<number>(50);
+  readonly breakMinutes = signal<number>(10);
+  readonly autoLoop = signal<boolean>(true);
+  readonly soundChimeEnabled = signal<boolean>(true);
+  readonly targetSeconds = signal<number>(3000); // 50 min default
+  readonly remainingSeconds = signal<number>(3000);
   readonly activeGoalIds = signal<string[]>([]);
 
   private targetEndTime: number | null = null;
@@ -39,10 +47,25 @@ export class TimerService {
     const seconds = total % 60;
 
     const pad = (n: number) => n.toString().padStart(2, '0');
-    if (hours > 0) {
-      return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
-    }
-    return `${pad(minutes)}:${pad(seconds)}`;
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  });
+
+  readonly formattedFocusTime = computed(() => {
+    const total = this.focusMinutes() * 60;
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
+  });
+
+  readonly formattedBreakTime = computed(() => {
+    const total = this.breakMinutes() * 60;
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const seconds = total % 60;
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(hours)}:${pad(minutes)}:${pad(seconds)}`;
   });
 
   readonly progress = computed(() => {
@@ -65,12 +88,42 @@ export class TimerService {
     }
   }
 
+  adjustFocusMinutes(delta: number): void {
+    const updated = Math.max(5, Math.min(180, this.focusMinutes() + delta));
+    this.focusMinutes.set(updated);
+    if (this.mode() === 'WORK' && this.status() === 'IDLE') {
+      this.targetSeconds.set(updated * 60);
+      this.remainingSeconds.set(updated * 60);
+    }
+    this.saveState();
+  }
+
+  adjustBreakMinutes(delta: number): void {
+    const updated = Math.max(1, Math.min(60, this.breakMinutes() + delta));
+    this.breakMinutes.set(updated);
+    if (this.mode() !== 'WORK' && this.status() === 'IDLE') {
+      this.targetSeconds.set(updated * 60);
+      this.remainingSeconds.set(updated * 60);
+    }
+    this.saveState();
+  }
+
+  toggleAutoLoop(): void {
+    this.autoLoop.update((v) => !v);
+    this.saveState();
+  }
+
+  toggleSoundChime(): void {
+    this.soundChimeEnabled.update((v) => !v);
+    this.saveState();
+  }
+
   setMode(newMode: SessionType) {
     this.pause();
     this.mode.set(newMode);
-    let defaultSeconds = 1500;
-    if (newMode === 'SHORT_BREAK') defaultSeconds = 300;
-    if (newMode === 'LONG_BREAK') defaultSeconds = 900;
+    let defaultSeconds = this.focusMinutes() * 60;
+    if (newMode === 'SHORT_BREAK') defaultSeconds = this.breakMinutes() * 60;
+    if (newMode === 'LONG_BREAK') defaultSeconds = Math.min(30, this.breakMinutes() * 2) * 60;
 
     this.targetSeconds.set(defaultSeconds);
     this.remainingSeconds.set(defaultSeconds);
@@ -149,7 +202,9 @@ export class TimerService {
   private onCompleted() {
     this.clearInterval();
     this.status.set('COMPLETED');
-    this.playChimeSound();
+    if (this.soundChimeEnabled()) {
+      this.playChimeSound();
+    }
 
     const endedAt = new Date();
     const startedAt = this.sessionStartedAt || new Date(endedAt.getTime() - this.targetSeconds() * 1000);
@@ -183,6 +238,9 @@ export class TimerService {
         this.setMode('SHORT_BREAK');
       } else {
         this.setMode('WORK');
+      }
+      if (this.autoLoop()) {
+        this.start();
       }
     }, 1500);
   }
@@ -230,6 +288,10 @@ export class TimerService {
       targetEndTime: this.targetEndTime,
       startedAt: this.sessionStartedAt ? this.sessionStartedAt.toISOString() : null,
       activeGoalIds: this.activeGoalIds(),
+      focusMinutes: this.focusMinutes(),
+      breakMinutes: this.breakMinutes(),
+      autoLoop: this.autoLoop(),
+      soundChimeEnabled: this.soundChimeEnabled(),
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }
@@ -242,8 +304,12 @@ export class TimerService {
       const state: StoredTimerState = JSON.parse(raw);
 
       this.mode.set(state.mode || 'WORK');
-      this.targetSeconds.set(state.targetSeconds || 1500);
+      this.targetSeconds.set(state.targetSeconds || 3000);
       this.activeGoalIds.set(state.activeGoalIds || []);
+      if (state.focusMinutes) this.focusMinutes.set(state.focusMinutes);
+      if (state.breakMinutes) this.breakMinutes.set(state.breakMinutes);
+      if (state.autoLoop !== undefined) this.autoLoop.set(state.autoLoop);
+      if (state.soundChimeEnabled !== undefined) this.soundChimeEnabled.set(state.soundChimeEnabled);
 
       if (state.startedAt) {
         this.sessionStartedAt = new Date(state.startedAt);
@@ -260,7 +326,7 @@ export class TimerService {
           this.status.set('COMPLETED');
         }
       } else {
-        this.remainingSeconds.set(state.remainingSeconds || 1500);
+        this.remainingSeconds.set(state.remainingSeconds || 3000);
         this.status.set(state.status === 'PAUSED' ? 'PAUSED' : 'IDLE');
       }
     } catch (e) {
