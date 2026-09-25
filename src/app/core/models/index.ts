@@ -55,3 +55,5 @@ export interface StatsSummary {
   bestStreak: number;
   studiedToday: boolean;
 }
+
+export * from './background.model';

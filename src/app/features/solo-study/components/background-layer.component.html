@@ -1,21 +1,58 @@
-<div
-  class="fixed inset-0 -z-10 overflow-hidden pointer-events-none transition-colors duration-1000"
-  [class]="activePreset().gradientClass"
->
-  <!-- Ambient Glow Orbs -->
+<div class="fixed inset-0 z-0 overflow-hidden pointer-events-none select-none bg-[#030303]">
+  <!-- 1. Color / OLED Minimalist Layer -->
+  @if (activeBackground().type === 'color') {
+    <div
+      class="absolute inset-0 transition-colors duration-1000"
+      [class]="activeBackground().gradientClass || 'bg-[#030303]'"
+    >
+      <!-- Ambient Glow Orbs -->
+      <div
+        class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[140px] opacity-25 animate-pulse"
+        [style.background-color]="activeBackground().accentColor"
+      ></div>
+      <div
+        class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[140px] opacity-20 animate-pulse"
+        [style.background-color]="activeBackground().accentColor"
+        style="animation-delay: 2s;"
+      ></div>
+    </div>
+  }
+
+  <!-- 2. Static Image or Dynamic GIF Layer -->
+  @if (activeBackground().type === 'image' || activeBackground().type === 'gif') {
+    <div class="absolute inset-0">
+      <img
+        [src]="activeBackground().sourceUrl"
+        [alt]="activeBackground().name"
+        class="w-full h-full object-cover transition-opacity duration-700 animate-in fade-in"
+        loading="eager"
+      />
+    </div>
+  }
+
+  <!-- 3. YouTube Embed Video Layer -->
+  @if (activeBackground().type === 'youtube' && safeYouTubeUrl()) {
+    <div class="absolute inset-0 overflow-hidden pointer-events-none">
+      <iframe
+        id="youtube-bg-player"
+        class="pointer-events-none absolute left-1/2 top-1/2 box-border h-[56.25vw] min-h-full w-screen min-w-[177.77vh] -translate-x-1/2 -translate-y-1/2 border-0"
+        [src]="safeYouTubeUrl()"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin"
+        title="YouTube Ambient Background"
+        tabindex="-1"
+      ></iframe>
+    </div>
+  }
+
+  <!-- 4. Subtle ambient scanline texture (adds cinematic polish) -->
   <div
-    class="absolute -top-40 -left-40 w-96 h-96 rounded-full blur-[140px] opacity-25 animate-pulse"
-    [style.background-color]="activePreset().accentColor"
-  ></div>
-  <div
-    class="absolute -bottom-40 -right-40 w-96 h-96 rounded-full blur-[140px] opacity-20 animate-pulse"
-    [style.background-color]="activePreset().accentColor"
-    style="animation-delay: 2s;"
+    class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.02)_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none"
   ></div>
 
-  <!-- Subtle scanline / grid texture overlay -->
+  <!-- 5. User-Adjustable Darkness Dimmer Overlay (0% to 50%) -->
   <div
-    class="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] [background-size:24px_24px]"
+    class="absolute inset-0 pointer-events-none transition-colors duration-200"
+    [style.background-color]="'rgba(0, 0, 0, ' + (darknessOpacity() / 100) + ')'"
   ></div>
-  <div class="absolute inset-0 bg-black/40"></div>
 </div>

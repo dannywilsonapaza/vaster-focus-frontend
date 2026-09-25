@@ -1,0 +1,285 @@
+<div
+  class="w-[360px] sm:w-[400px] p-4 rounded-3xl bg-black/90 backdrop-blur-2xl border border-white/15 shadow-2xl text-white flex flex-col gap-3.5 max-h-[82vh] overflow-hidden select-none animate-in fade-in zoom-in-95 duration-150"
+>
+  <!-- Header -->
+  <div class="flex items-center justify-between pb-3 border-b border-white/10">
+    <div class="flex items-center gap-2">
+      <svg lucideSparkles [size]="16" class="w-4 h-4 text-emerald-400"></svg>
+      <h3 class="text-sm font-semibold tracking-wide text-white">Ambiente Visual</h3>
+    </div>
+
+    <button
+      type="button"
+      (click)="close.emit()"
+      class="p-1.5 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+      aria-label="Cerrar selector de fondos"
+    >
+      <svg lucideX [size]="16" class="w-4 h-4"></svg>
+    </button>
+  </div>
+
+  <!-- Controles Globales: Atenuador y Audio de YouTube -->
+  <div class="flex flex-col gap-2.5 p-3 rounded-2xl bg-white/[0.04] border border-white/5 text-xs">
+    <!-- Slider de Atenuación (0% a 50%) -->
+    <div class="flex flex-col gap-1.5">
+      <div class="flex items-center justify-between text-[11px] text-white/70">
+        <span class="flex items-center gap-1.5 font-medium">
+          <svg lucideSunMedium [size]="13" class="w-3.5 h-3.5 text-amber-400"></svg>
+          Atenuación del fondo
+        </span>
+        <span class="font-mono text-emerald-400 font-semibold">{{ backgroundService.darknessOpacity() }}%</span>
+      </div>
+      <input
+        type="range"
+        min="0"
+        max="50"
+        [value]="backgroundService.darknessOpacity()"
+        (input)="onDarknessChange($event)"
+        class="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-emerald-400 focus:outline-none"
+        aria-label="Regulador de opacidad de oscurecimiento"
+      />
+      <div class="flex justify-between text-[9px] text-white/30 font-mono">
+        <span>0% (Brillante)</span>
+        <span>50% (Atenuado)</span>
+      </div>
+    </div>
+
+    <!-- Control de Audio de YouTube (si el fondo activo es YouTube) -->
+    @if (backgroundService.activeBackground().type === 'youtube') {
+      <div class="pt-2 border-t border-white/10 flex items-center justify-between gap-2">
+        <button
+          type="button"
+          (click)="backgroundService.toggleAudioMute()"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-[11px] font-medium transition-colors cursor-pointer"
+          [class]="backgroundService.isAudioMuted() ? 'bg-white/10 text-white/60 hover:bg-white/15 hover:text-white' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'"
+        >
+          @if (backgroundService.isAudioMuted()) {
+            <svg lucideVolumeX [size]="14" class="w-3.5 h-3.5"></svg>
+            <span>Silenciado</span>
+          } @else {
+            <svg lucideVolume2 [size]="14" class="w-3.5 h-3.5"></svg>
+            <span>Sonido activo</span>
+          }
+        </button>
+
+        @if (!backgroundService.isAudioMuted()) {
+          <div class="flex-1 flex items-center gap-2 max-w-[150px]">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              [value]="backgroundService.audioVolume()"
+              (input)="onVolumeChange($event)"
+              class="w-full h-1.5 bg-white/15 rounded-lg appearance-none cursor-pointer accent-emerald-400 focus:outline-none"
+              aria-label="Volumen del video de YouTube"
+            />
+            <span class="font-mono text-[10px] text-white/60 w-6 text-right">
+              {{ backgroundService.audioVolume() }}%
+            </span>
+          </div>
+        }
+      </div>
+    }
+  </div>
+
+  <!-- Pestañas de Categorías -->
+  <div class="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none text-xs">
+    @for (cat of categories; track cat.id) {
+      <button
+        type="button"
+        (click)="activeCategory.set(cat.id)"
+        class="px-2.5 py-1 rounded-xl text-[11px] font-medium whitespace-nowrap transition-colors cursor-pointer"
+        [class]="activeCategory() === cat.id ? 'bg-white/20 text-white shadow-sm' : 'text-white/50 hover:text-white hover:bg-white/5'"
+      >
+        {{ cat.label }}
+      </button>
+    }
+  </div>
+
+  <!-- Contenido: Cuadrícula de Fondos o Formulario Personalizado -->
+  @if (activeCategory() !== 'custom') {
+    <!-- Cuadrícula de Fondos -->
+    <div class="grid grid-cols-2 gap-2.5 overflow-y-auto max-h-[300px] pr-1 -mr-1">
+      @for (item of filteredBackgrounds(); track item.id) {
+        <div
+          (click)="selectBackground(item)"
+          class="group relative flex flex-col rounded-2xl overflow-hidden border transition-all cursor-pointer text-left bg-black/40"
+          [class]="backgroundService.activeBackground().id === item.id ? 'border-emerald-400 ring-2 ring-emerald-400/40' : 'border-white/10 hover:border-white/25 hover:scale-[1.02]'"
+        >
+          <!-- Vista previa / Miniatura -->
+          <div class="relative w-full h-20 bg-neutral-900 overflow-hidden">
+            @if (item.type === 'color') {
+              <div
+                class="w-full h-full flex items-center justify-center transition-transform group-hover:scale-105"
+                [class]="item.gradientClass || 'bg-[#030303]'"
+              >
+                <div class="w-8 h-8 rounded-full blur-md opacity-50" [style.background-color]="item.accentColor"></div>
+              </div>
+            } @else {
+              <img
+                [src]="item.thumbnailUrl"
+                [alt]="item.name"
+                class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                loading="lazy"
+              />
+            }
+
+            <!-- Badges de Tipo de Fondo -->
+            <div class="absolute top-1.5 left-1.5 flex items-center gap-1">
+              @if (item.type === 'youtube') {
+                <span class="px-1.5 py-0.5 rounded-md bg-red-600/90 text-white font-mono text-[9px] font-bold tracking-tight shadow">
+                  YT
+                </span>
+              } @else if (item.type === 'gif') {
+                <span class="px-1.5 py-0.5 rounded-md bg-indigo-600/90 text-white font-mono text-[9px] font-bold tracking-tight shadow">
+                  GIF
+                </span>
+              } @else if (item.type === 'image') {
+                <span class="px-1.5 py-0.5 rounded-md bg-blue-600/90 text-white font-mono text-[9px] font-bold tracking-tight shadow">
+                  IMG
+                </span>
+              } @else {
+                <span class="px-1.5 py-0.5 rounded-md bg-emerald-600/90 text-white font-mono text-[9px] font-bold tracking-tight shadow">
+                  OLED
+                </span>
+              }
+            </div>
+
+            <!-- Indicador Activo -->
+            @if (backgroundService.activeBackground().id === item.id) {
+              <div class="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-emerald-400 text-black flex items-center justify-center shadow-lg">
+                <svg lucideCheck [size]="12" class="w-3 h-3 stroke-[3]"></svg>
+              </div>
+            }
+
+            <!-- Botón Borrar si es Personalizado -->
+            @if (item.isCustom) {
+              <button
+                type="button"
+                (click)="handleRemoveCustom(item.id, $event)"
+                class="absolute bottom-1.5 right-1.5 p-1 rounded-md bg-black/70 text-red-400 hover:text-white hover:bg-red-600 transition-colors"
+                title="Eliminar fondo personalizado"
+                aria-label="Eliminar fondo personalizado"
+              >
+                <svg lucideTrash2 [size]="12" class="w-3 h-3"></svg>
+              </button>
+            }
+          </div>
+
+          <!-- Pie con Nombre -->
+          <div class="p-2 flex items-center justify-between text-[11px] font-medium bg-black/60">
+            <span class="truncate text-white/90">{{ item.name }}</span>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <!-- Pestaña Formulario Personalizado -->
+    <div class="flex flex-col gap-3 overflow-y-auto max-h-[300px] pr-1">
+      <div class="p-3 rounded-2xl bg-white/[0.04] border border-white/5 flex flex-col gap-2.5 text-xs">
+        <span class="font-medium text-white/80 text-[11px]">Tipo de recurso</span>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button
+            type="button"
+            (click)="customType.set('youtube')"
+            class="py-1 px-2 rounded-xl text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+            [class]="customType() === 'youtube' ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'"
+          >
+            <svg lucideVideo [size]="12" class="w-3 h-3"></svg>
+            YouTube
+          </button>
+          <button
+            type="button"
+            (click)="customType.set('image')"
+            class="py-1 px-2 rounded-xl text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+            [class]="customType() === 'image' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/40' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'"
+          >
+            <svg lucideImage [size]="12" class="w-3 h-3"></svg>
+            Imagen
+          </button>
+          <button
+            type="button"
+            (click)="customType.set('gif')"
+            class="py-1 px-2 rounded-xl text-[11px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+            [class]="customType() === 'gif' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/40' : 'bg-white/5 text-white/60 hover:bg-white/10 hover:text-white'"
+          >
+            <svg lucideSparkles [size]="12" class="w-3 h-3"></svg>
+            GIF
+          </button>
+        </div>
+
+        <!-- URL Input -->
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-white/50">URL o Enlace</label>
+          <input
+            type="text"
+            [value]="customUrl()"
+            (input)="customUrl.set($any($event.target).value)"
+            [placeholder]="customType() === 'youtube' ? 'https://www.youtube.com/watch?v=...' : 'https://ejemplo.com/fondo.jpg'"
+            class="w-full px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/30 text-xs focus:outline-none focus:border-emerald-400"
+          />
+        </div>
+
+        <!-- Name Input -->
+        <div class="flex flex-col gap-1">
+          <label class="text-[10px] text-white/50">Nombre (opcional)</label>
+          <input
+            type="text"
+            [value]="customName()"
+            (input)="customName.set($any($event.target).value)"
+            placeholder="Mi fondo favorito"
+            class="w-full px-3 py-1.5 rounded-xl bg-white/10 border border-white/10 text-white placeholder-white/30 text-xs focus:outline-none focus:border-emerald-400"
+          />
+        </div>
+
+        @if (errorMessage()) {
+          <div class="p-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-300 text-[11px]">
+            {{ errorMessage() }}
+          </div>
+        }
+
+        <button
+          type="button"
+          (click)="handleAddCustom()"
+          class="w-full py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-semibold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg mt-1"
+        >
+          <svg lucidePlus [size]="14" class="w-3.5 h-3.5 stroke-[3]"></svg>
+          Aplicar y Guardar Fondo
+        </button>
+      </div>
+
+      <!-- Fondos personalizados recientes -->
+      @if (backgroundService.customBackgrounds().length > 0) {
+        <div class="flex flex-col gap-1.5">
+          <span class="text-[11px] font-medium text-white/60">Tus fondos guardados</span>
+          <div class="flex flex-col gap-1.5">
+            @for (item of backgroundService.customBackgrounds(); track item.id) {
+              <div
+                (click)="selectBackground(item)"
+                class="flex items-center justify-between p-2 rounded-xl border transition-colors cursor-pointer bg-white/[0.02]"
+                [class]="backgroundService.activeBackground().id === item.id ? 'border-emerald-400/80 bg-emerald-500/10' : 'border-white/5 hover:bg-white/5'"
+              >
+                <div class="flex items-center gap-2 truncate">
+                  <span class="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold uppercase" [class]="item.type === 'youtube' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'">
+                    {{ item.type }}
+                  </span>
+                  <span class="text-xs text-white/90 truncate">{{ item.name }}</span>
+                </div>
+
+                <button
+                  type="button"
+                  (click)="handleRemoveCustom(item.id, $event)"
+                  class="p-1 rounded-lg text-white/40 hover:text-red-400 transition-colors"
+                  title="Eliminar"
+                  aria-label="Eliminar"
+                >
+                  <svg lucideTrash2 [size]="13" class="w-3.5 h-3.5"></svg>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  }
+</div>

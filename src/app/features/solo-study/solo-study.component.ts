@@ -1,10 +1,12 @@
 import { Component, ChangeDetectionStrategy, viewChild, signal, inject, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { BackgroundLayerComponent } from './components/background-layer.component';
+import { BackgroundSelectorComponent } from './components/background-selector.component';
 import { TimerWidgetComponent } from './components/timer-widget.component';
 import { AudioMixerWidgetComponent } from './components/audio-mixer-widget.component';
 import { GoalsWidgetComponent } from './components/goals-widget.component';
 import { TimerService } from '../../core/services/timer.service';
+import { BackgroundService } from '../../core/services/background.service';
 import {
   LucideBarChart3,
   LucideClock,
@@ -55,6 +57,7 @@ export const SPANISH_QUOTES: Quote[] = [
   imports: [
     RouterLink,
     BackgroundLayerComponent,
+    BackgroundSelectorComponent,
     TimerWidgetComponent,
     AudioMixerWidgetComponent,
     GoalsWidgetComponent,
@@ -73,6 +76,7 @@ export const SPANISH_QUOTES: Quote[] = [
 })
 export class SoloStudyComponent {
   readonly timerService = inject(TimerService);
+  readonly backgroundService = inject(BackgroundService);
   readonly bgLayer = viewChild.required<BackgroundLayerComponent>('bgLayer');
   readonly goalsWidget = viewChild<GoalsWidgetComponent>(GoalsWidgetComponent);
 
@@ -102,7 +106,11 @@ export class SoloStudyComponent {
   }
 
   toggleAudioMixer(): void {
-    this.showAudioMixer.update((v) => !v);
+    const willOpen = !this.showAudioMixer();
+    if (willOpen) {
+      this.showBgMenu.set(false);
+    }
+    this.showAudioMixer.set(willOpen);
   }
 
   toggleQuote(): void {
@@ -114,7 +122,11 @@ export class SoloStudyComponent {
   }
 
   toggleBgMenu(): void {
-    this.showBgMenu.update((v) => !v);
+    const willOpen = !this.showBgMenu();
+    if (willOpen) {
+      this.showAudioMixer.set(false);
+    }
+    this.showBgMenu.set(willOpen);
   }
 
   toggleFullscreen(): void {
