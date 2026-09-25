@@ -1,4 +1,4 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
+  apiUrl: 'https://vaster-focus-api-245aa9587d57.herokuapp.com/api',
 };
